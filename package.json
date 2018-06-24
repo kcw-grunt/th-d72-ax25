@@ -1,6 +1,6 @@
 {
   "name": "th-d72-ax25",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A AX25 TNC Package for the Kenwood TH-D72A Packet Radio",
   "main": "index.js",
   "scripts": {
@@ -18,14 +18,15 @@
     "kenwood"
   ],
   "author": {
-    "name":"Kerry Washington (KM6TIG)",
-    "email":"kerry.washington@gmail.com"
+    "name": "Kerry Washington (KM6TIG)",
+    "email": "kerry.washington@gmail.com"
   },
-  "contributors" : [
-		{	"name" : "Derek Mullin (VE3XEC)",
-			"email" : "derekmullin@gmail.com"
-		}
-	],
+  "contributors": [
+    {
+      "name": "Derek Mullin (VE3XEC)",
+      "email": "derekmullin@gmail.com"
+    }
+  ],
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/kcw-grunt/th-d72-ax25/issues"
