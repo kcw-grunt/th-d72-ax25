@@ -1,0 +1,37 @@
+{
+  "name": "th-d72-ax25",
+  "version": "1.0.2",
+  "description": "A AX25 TNC Package for the Kenwood TH-D72A Packet Radio",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kcw-grunt/th-d72-ax25.git"
+  },
+  "keywords": [
+    "tnc",
+    "kiss",
+    "ax25",
+    "d72a",
+    "kenwood"
+  ],
+  "author": {
+    "name":"Kerry Washington (KM6TIG)",
+    "email":"kerry.washington@gmail.com"
+  },
+  "contributors" : [
+		{	"name" : "Derek Mullin (VE3XEC)",
+			"email" : "derekmullin@gmail.com"
+		}
+	],
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kcw-grunt/th-d72-ax25/issues"
+  },
+  "homepage": "https://github.com/kcw-grunt/th-d72-ax25#readme",
+  "dependencies": {
+    "serialport": "^6.2.0"
+  }
+}
