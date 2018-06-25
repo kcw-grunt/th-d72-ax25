@@ -1,6 +1,6 @@
 {
   "name": "th-d72-ax25",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A AX25 TNC Package for the Kenwood TH-D72A Packet Radio",
   "main": "index.js",
   "scripts": {
