@@ -43,42 +43,14 @@ var Session = function(args) {
 	};
 
 	var timers = {
-		'connect' : {
-			'event' : undefined,
-			'attempts' : 0,
-			'callback' : self.connect
-		},
-		'disconnect' : {
-			'event' : undefined,
-			'attempts' : 0,
-			'callback' : self.disconnect
-		},
-		't1' : {
-			'event' : undefined,
-			'attempts' : 0,
-			'callback' : function() {
-				if(timers.t1.attempts == settings.retries) {
-					clearTimer("t1");
-					self.connect();
-					return;
-				}
-				timers.t1.attempts++;
-				poll();
-			}
-		},
-		't3' : {
-			'event' : undefined,
-			'attempts' : 0,
-			'callback' : function() {
-				if(typeof timers.t1.event != "undefined")
-					return;
-				if(timers.t3.attempts == settings.retries) {
-					clearTimer("t3");
-					self.disconnect();
-					return;
-				}
-			}
-		}
+		'connect' : false,
+		'connectAttempts' : 0,
+		'disconnect' : false,
+		'disconnectAttempts' : 0,
+		't1' : false,
+		't1Attempts' : 0,
+		't3' : false,
+		't3Attempts' : 0
 	};
 
 	this.__defineGetter__(
@@ -290,6 +262,14 @@ var Session = function(args) {
 		}
 	);
 
+	var getTimeout = function() {
+		return Math.floor(
+			(	(((600 + (settings.packetLength * 8)) / settings.hBaud) * 2)
+				* 1000
+			) * ((properties.repeaterPath.length > 0) ? properties.repeaterPath.length : 1)
+		);
+	}
+
 	var emitPacket = function(packet) {
 		if(typeof packet == "undefined" || !(packet instanceof ax25.Packet)) {
 			self.emit(
@@ -301,92 +281,30 @@ var Session = function(args) {
 		self.emit("packet",	packet);
 	}
 
-	// Milliseconds required to transmit the largest possible packet
-	var getMaxPacketTime = function() {
-		return Math.floor(
-			(	(	(	// Flag + Address + Control + FCS + Flag <= 600 bits
-						600
-						// Maximum possible information field length in bits
-						+ (settings.packetLength * 8)
-					// HLDC bits-per-second rate
-					) / settings.hBaud
-				)
-				// To milliseconds
-				* 1000
-			)
-		); // Rounded down
-	}
-
-	var getTimeout = function() {
-		var multiplier = 0;
-		for(var p = 0; p < state.sendBuffer.length; p++) {
-			if(!state.sendBuffer.sent)
-				continue;
-			multiplier++;
-		}
-		return	(
-			(	(	// ms required to transmit alrgest possible packet
-					getMaxPacketTime()
-					// The number of hops from local to remote
-					* Math.max(1, properties.repeaterPath.length)
-				// Twice the amount of time for a round-trip
-				) * 4
-			)
-			/*	This isn't great, but we need to give the TNC time to
-				finish transmitting any packets we've sent to it before we
-				can reasonably start expecting a response from the remote
-				side.  A large settings.maxFrames value coupled with a
-				large number of sent but unacknowledged frames could lead
-				to a very long interval. */
-			+ (getMaxPacketTime() * Math.max(1, multiplier))
-		);
-	}
-
-	var setTimer = function(timerName) {
-		if(typeof timers[timerName].event != "undefined")
-			clearTimer(timerName);
-		timers[timerName].event = setInterval(
-			timers[timerName].callback,
-			// Le delai de t3 est arbitraire et code en dur, oh ho ho
-			((timerName == "t3") ? getTimeout() * 7 : getTimeout())
-		);
-	}
-
 	var clearTimer = function(timerName) {
-		if(typeof timers[timerName].event != "undefined") {
-			clearInterval(timers[timerName].event);
-			timers[timerName].event = undefined;
+		if(typeof timers[timerName] != "undefined" && timers[timerName]) {
+			clearTimeout(timers[timerName]);
+			timers[timerName] = false;
 		}
-		timers[timerName].attempts = 0;
+		timers[timerName + "Attempts"] = 0;
 	}
 
 	var receiveAcknowledgement = function(packet) {
-		for(var p = 0; p < state.sendBuffer.length; p++) {
+		for(var p in state.sendBuffer) {
 			if(	state.sendBuffer[p].sent
 				&&
-				state.sendBuffer[p].ns != packet.nr
-				&&
 				ax25.Utils.distanceBetween(
-					packet.nr,
 					state.sendBuffer[p].ns,
-					((settings.modulo128) ? 128 : 8)
-				) <= settings.maxFrames
+					packet.nr,
+					(settings.modulo128) ? 128 : 8
+				) < ((settings.modulo128) ? 127 : 7)
 			) {
-				state.sendBuffer.splice(p, 1);
-				p--;
+				state.sendBuffer.shift();
 			}
 		}
 		state.remoteReceiveSequence = packet.nr;
-		if(	typeof timers.t1.event != "undefined"
-			&&
-			state.sendBuffer.length > 0
-		) {
-			drain(true);
-			return true;
-		} else {
-			clearTimer("t1");
-			return false;
-		}
+		clearTimer("t1");
+		drain();
 	}
 
 	var poll = function() {
@@ -407,17 +325,32 @@ var Session = function(args) {
 		);
 	}
 
-	var drain = function(retransmit) {
-		if(state.remoteBusy) {
-			clearTimer("t1"); // t3 will poll
+	var t1Poll = function() {
+		if(timers.t1Attempts == settings.retries) {
+			clearTimer("t1");
+			self.connect();
 			return;
 		}
+		timers.t1Attempts++;
+		poll();
+	}
+
+	var t3Poll = function() {
+		if(typeof timers.t1 != "boolean")
+			return;
+		if(timers.t3Attempts == settings.retries) {
+			clearTimer("t3");
+			self.disconnect();
+			return;
+		}
+	}
+
+	var drain = function(retransmit) {
 		if(typeof retransmit == "undefined")
 			retransmit = false;
 		var ret = false;
 		for(var packet = 0; packet < state.sendBuffer.length; packet++) {
 			if(retransmit && state.sendBuffer[packet].sent) {
-				state.sendBuffer[packet]
 				emitPacket(state.sendBuffer[packet]);
 				ret = true;
 			} else if(
@@ -426,19 +359,21 @@ var Session = function(args) {
 				ax25.Utils.distanceBetween(
 					state.sendSequence,
 					state.remoteReceiveSequence,
-					((settings.modulo128) ? 128 : 8)
-				) < settings.maxFrames
+					(settings.modulo128) ? 128 : 8
+				) < ((settings.modulo128) ? 127 : 7)
+				&&
+				packet < settings.maxFrames
 			) {
 				state.sendBuffer[packet].ns = state.sendSequence;
 				state.sendBuffer[packet].nr = state.receiveSequence;
+				emitPacket(state.sendBuffer[packet]);
 				state.sendBuffer[packet].sent = true;
 				state.sendSequence = (state.sendSequence + 1) % ((settings.modulo128) ? 128 : 8);
 				ret = true;
-				emitPacket(state.sendBuffer[packet]);
 			}
 		}
 		if(ret)
-			setTimer("t1");
+			timers.t1 = setTimeout(poll, getTimeout());
 		return ret;
 	}
 
@@ -452,12 +387,12 @@ var Session = function(args) {
 
 	this.connect = function() {
 
-		//if(!state.initialized) {
-		//	self.emit(
-		//		"error",
-		//		"ax25.Session.connect: localCallsign and remoteCallsign not set."
-		//	);
-		//}
+		if(!state.initialized) {
+			self.emit(
+				"error",
+				"ax25.Session.connect: localCallsign and remoteCallsign not set."
+			);
+		}
 
 		state.connection = CONNECTING;
 		state.receiveSequence = 0;
@@ -467,6 +402,13 @@ var Session = function(args) {
 
 		clearTimer("disconnect");
 		clearTimer("t3");
+
+		timers.connectAttempts++;
+		if(timers.connectAttempts == settings.retries) {
+			timers.connectAttempts = 0;
+			state.connection = DISCONNECTED;
+			return;
+		}
 
 		emitPacket(
 			new ax25.Packet(
@@ -486,15 +428,8 @@ var Session = function(args) {
 		);
 
 		renumber();
-
-		timers.connect.attempts++;
-		if(timers.connect.attempts == settings.retries) {
-			clearTimer("connect");
-			state.connection = DISCONNECTED;
-			return;
-		}
-		if(typeof timers.connect.event == "undefined")
-			setTimer("connect");
+		
+		timers.connect = setTimeout(self.connect, getTimeout());
 
 	}
 
@@ -511,7 +446,7 @@ var Session = function(args) {
 			return;
 		}
 
-		if(timers.disconnect.attempts == settings.retries) {
+		if(timers.disconnectAttempts == settings.retries) {
 			clearTimer('disconnect');
 			emitPacket(
 				new ax25.Packet(
@@ -531,8 +466,7 @@ var Session = function(args) {
 			state.connection = DISCONNECTED;
 			return;
 		}
-
-		timers.disconnect.attempts++;
+		timers.disconnectAttempts++;
 		state.connection = DISCONNECTING;
 		emitPacket(
 			new ax25.Packet(
@@ -549,9 +483,7 @@ var Session = function(args) {
 				}
 			)
 		);
-		if(typeof timers.disconnect.event == "undefined")
-			setTimer("disconnect");
-
+		timers.disconnect = setTimeout(self.disconnect, getTimeout());
 	}
 
 	this.send = function(info) {
@@ -617,7 +549,7 @@ var Session = function(args) {
 		);
 
 		var doDrain = false;
-		var emit = [];
+		var emit = false;
 
 		switch(packet.type) {
 		
@@ -630,7 +562,7 @@ var Session = function(args) {
 				clearTimer("connect");
 				clearTimer("disconnect");
 				clearTimer("t1");
-				setTimer("t3");
+				clearTimer("t3");
 				settings.modulo128 = false;
 				renumber();
 				emit = ["connection", true];
@@ -649,7 +581,7 @@ var Session = function(args) {
 				clearTimer("connect");
 				clearTimer("disconnect");
 				clearTimer("t1");
-				setTimer("t3");
+				clearTimer("t3");
 				settings.modulo128 = true;
 				renumber();
 				emit = ["connection", true];
@@ -682,13 +614,11 @@ var Session = function(args) {
 				if(state.connection == CONNECTING) {
 					state.connection = CONNECTED;
 					clearTimer("connect");
-					setTimer("t3");
 					response = false;
 					doDrain = true;
 				} else if(state.connection == DISCONNECTING) {
 					state.connection = DISCONNECTED;
 					clearTimer("disconnect");
-					clearTimer("t3");
 					response = false;
 				} else if(state.connection == CONNECTED) {
 					this.connect();
@@ -762,14 +692,16 @@ var Session = function(args) {
 				
 			case ax25.Defs.S_FRAME_RR:
 				if(state.connection == CONNECTED) {
-					state.remoteBusy = false;
+					if(state.remoteBusy)
+						state.remoteBusy = false;
+					receiveAcknowledgement(packet);
 					if(packet.command && packet.pollFinal) {
 						response.type = ax25.Defs.S_FRAME_RR;
 						response.pollFinal = true;
 					} else {
 						response = false;
 					}
-					doDrain = receiveAcknowledgement(packet);
+					doDrain = true;
 				} else if(packet.command) {
 					response.type = ax25.Defs.U_FRAME_DM;
 					response.pollFinal = true;
@@ -786,7 +718,7 @@ var Session = function(args) {
 					} else {
 						response = false;
 					}
-					setTimer("t1");
+					timers.t1 = setTimeout(poll, getTimeout());
 				} else if(packet.command) {
 					response.type = ax25.Defs.U_FRAME_DM;
 					response.pollFinal = true;
@@ -795,14 +727,13 @@ var Session = function(args) {
 				
 			case ax25.Defs.S_FRAME_REJ:
 				if(state.connection == CONNECTED) {
-					state.remoteBusy = false;
+					receiveAcknowledgement(packet);
 					if(packet.command && packet.pollFinal) {
 						response.type = ax25.Defs.S_FRAME_RR;
 						response.pollFinal = true;
 					} else {
 						response = false;
 					}
-					receiveAcknowledgement(packet);
 					drain(true);
 				} else {
 					response.type = ax25.Defs.U_FRAME_DM;
@@ -829,7 +760,8 @@ var Session = function(args) {
 						response.type = ax25.Defs.S_FRAME_REJ;
 						state.sentREJ = true;
 					}
-					doDrain = receiveAcknowledgement(packet);
+					receiveAcknowledgement(packet);
+					doDrain = true;
 				} else if(packet.command) {
 					response.type = ax25.Defs.U_FRAME_DM;
 					response.pollFinal = true;
@@ -848,7 +780,7 @@ var Session = function(args) {
 		if(doDrain)
 			drain();
 
-		if(emit.length == 2)
+		if(Array.isArray(emit) && emit.length == 2)
 			this.emit(emit[0], emit[1]);
 
 	}
