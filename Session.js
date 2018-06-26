@@ -97,7 +97,6 @@ class Session extends EventEmitter {
     }
 
     receive(packet) {
-
         // This is just me sketching out how to process each type of frame as it
         // is received, as well as I can interpret from the spec.  These notes
         // are incomplete and will be built out as I go through the AX.25 2.2

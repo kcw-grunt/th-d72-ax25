@@ -3,7 +3,7 @@
 
 A KISS &amp; AX.25 packet radio stack for node.js. Curated for the Kenwood TH-D72A HT. The TH-D72A is one of the few hand-held transceivers that has a built in TNC and adheres to AX.25 protocol.
 
-This is a merge of code from @echicken npm ax25 and another branch the same branch.
+This is a merge of code from @echicken (ax25) and work from another one of it's branches
 
 This is a work in progress.  Thanks alot to @echicken for guidance on the code!
 
