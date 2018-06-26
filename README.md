@@ -1,36 +1,25 @@
-# node-ax25
+### th-d72-ax25
+ 
 
-*07/12/2017 - Notice: I have started [a new branch](https://github.com/echicken/node-ax25/tree/es6rewrite) under which I am rewriting this entire module.  The AX.25 and KISS TNC portions of this module will be decoupled, as a new, separate [KISS TNC module](https://github.com/echicken/kiss-tnc) has been created.  I do not recommend putting much effort into using the current module, nor putting any effort into improving it.*
+A KISS &amp; AX.25 packet radio stack for node.js. Curated for the Kenwood TH-D72A HT. The TH-D72A is one of the few hand-held transceivers that has a built in TNC and adheres to AX.25 protocol.
 
-A KISS &amp; AX.25 packet radio stack for node.js.
+This is a merge of code from @echicken npm ax25 and another branch the same branch.
+
+This is a work in progress.  Thanks alot to @echicken for guidance on the code!
 
 ---
 
 ### Installation
 
 ```sh
-npm install ax25
+npm i th-d72-ax25
 ```
-
-Or:
-
-Assuming you have git installed, the following will clone this repository into a directory called 'node-ax25' under the current working directory, then attempt to install its dependencies:
-
-```sh
-git clone https://github.com/echicken/node-ax25.git
-npm install
-```
-
-This will get you the latest code, which may be more unstable than what's in the npm registry. :D
-
-If you go this route and run the examples shown below, either rename the node-ax25 directory to "ax25" or modify the require() paths accordingly.
+  
 
 #### Dependencies
 
 [node-serialport](https://github.com/voodootikigod/node-serialport)
-
-The node-ax25 module is made to interface with a KISS TNC over a serial port.  (It would, however, be possible to use it with another kind of interface.)  When you run *npm install*, the required [node-serialport](https://github.com/voodootikigod/node-serialport) module will be installed automatically.
-
+ 
 #### Compatibility
 
 [ax25.kissTNC](#ax25.kissTNC) should work with any KISS TNC, and has been tested with several different models.
