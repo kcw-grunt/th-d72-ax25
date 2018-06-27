@@ -1,364 +1,560 @@
-'use strict';
-const path = require('path');
-const masks = require(path.join(__dirname, 'masks.js'));
+var ax25 = require("./index.js"),
+	util = require("util");
 
-function validate_address(obj) {
-    return (
-        typeof obj.callsign == 'string' &&
-        obj.callsign.length > 0 &&
-        obj.callsign.length < 7 &&
-        typeof obj.ssid == 'number' &&
-        obj.ssid >= 0 &&
-        obj.ssid <= 15
-    );
-}
+var Packet = function(args) {
+	
+	var properties = {
+		'destinationCallsign'	: "",
+		'destinationSSID'		: 0,
+		'sourceCallsign'		: "",
+		'sourceSSID'			: 0,
+		'repeaterPath'			: [],
+		'pollFinal'				: 0,
+		'command'				: 0,
+		'type'					: 0,
+		'nr'					: 0,
+		'ns'					: 0,
+		'pid'					: ax25.Defs.PID_NONE,
+		'info'					: [],
+		'sent'					: false, // Relevant only to ax25.Session
+		'modulo128'				: false
+	};
+	
+	this.__defineGetter__(
+		"destinationCallsign",
+		function() {
+			if(!ax25.Utils.testCallsign(properties.destinationCallsign))
+				throw "ax25.Packet: Invalid destination callsign.";
+			return properties.destinationCallsign;
+		}
+	);
+	
+	this.__defineSetter__(
+		"destinationCallsign",
+		function(callsign) {
+			if(typeof callsign == "undefined" || !ax25.Utils.testCallsign(callsign))
+				throw "ax25.Packet: Invalid destination callsign.";
+			properties.destinationCallsign = callsign;
+		}
+	);
+	
+	this.__defineGetter__(
+		"destinationSSID",
+		function() {
+			if(properties.destinationSSID < 0 || properties.destinationSSID > 15)
+				throw "ax25.Packet: Invalid destination SSID.";
+			return properties.destinationSSID;
+		}
+	);
+	
+	this.__defineSetter__(
+		"destinationSSID",
+		function(ssid) {
+			if(typeof ssid != "number" || ssid < 0 || ssid > 15)
+				throw "ax25.Packet: Invalid destination SSID.";
+			properties.destinationSSID = ssid;
+		}
+	);
+	
+	this.__defineGetter__(
+		"sourceCallsign",
+		function() {
+			if(!ax25.Utils.testCallsign(properties.sourceCallsign))
+				throw "ax25.Packet: Invalid source callsign.";
+			return properties.sourceCallsign;
+		}
+	);
+	
+	this.__defineSetter__(
+		"sourceCallsign",
+		function(callsign) {
+			if(typeof callsign == "undefined" || !ax25.Utils.testCallsign(callsign))
+				throw "ax25.Packet: Invalid source callsign.";
+			properties.sourceCallsign = callsign;
+		}
+	);
+	
+	this.__defineGetter__(
+		"sourceSSID",
+		function() {
+			if(properties.sourceSSID < 0 || properties.sourceSSID > 15)
+				throw "ax25.Packet: Invalid source SSID.";
+			return properties.sourceSSID;
+		}
+	);
+	
+	this.__defineSetter__(
+		"sourceSSID",
+		function(ssid) {
+			if(typeof ssid != "number" || ssid < 0 || ssid > 15)
+				throw "ax25.Packet: Invalid source SSID.";
+			properties.sourceSSID = ssid;
+		}
+	);
+	
+	this.__defineGetter__(
+		"repeaterPath",
+		function() {
+			return properties.repeaterPath;
+		}
+	);
+	
+	this.__defineSetter__(
+		"repeaterPath",
+		function(repeaters) {
+			var msg = "ax25.Packet: Repeater path must be array of valid {callsign, ssid} objects.";
+			if(typeof repeaters == "undefined" || !(repeaters instanceof Array))
+				throw msg;
+			for(var r = 0; r < repeaters.length; r++) {
+				if(	!repeaters[r].hasOwnProperty('callsign')
+					||
+					!ax25.Utils.testCallsign(repeaters[r].callsign)
+				) {
+					throw msg;
+				}
+				if(	!repeaters[r].hasOwnProperty('ssid')
+					||
+					repeaters[r].ssid < 0
+					||
+					repeaters[r].ssid > 15
+				) {
+					throw msg;
+				}
+			}
+			properties.repeaterPath = repeaters;
+		}
+	);
+	
+	this.__defineGetter__(
+		"pollFinal",
+		function() {
+			return (properties.pollFinal == 1) ? true : false;
+		}
+	);
+	
+	this.__defineSetter__(
+		"pollFinal",
+		function(pollFinal) {
+			if(typeof pollFinal != "boolean")
+				throw "ax25.Packet: Invalid poll/final bit assignment (should be boolean.)";
+			properties.pollFinal = (pollFinal) ? 1 : 0;
+		}
+	);
 
-function validate_sequence(n, m) {
-    return ((m === 8 || m === 128) && n >= 0 && n < m);
-}
+	this.__defineGetter__(
+		"command",
+		function() {
+			return (properties.command == 1) ? true : false;
+		}
+	);
+	
+	this.__defineSetter__(
+		"command",
+		function(command) {
+			if(typeof command != "boolean")
+				throw "ax25.Packet: Invalid command bit assignment (should be boolean.)";
+			properties.command = (command) ? 1 : 0;
+		}
+	);
 
-function validate_frame_type(t) { // lol :|
-    return Object.keys(masks.control.frame_types).some(
-        (e) => {
-            if (typeof masks.control.frame_types[e].subtypes == 'object') {
-                return Object.keys(masks.control.frame_types[e].subtypes).some(
-                    (ee) => (masks.control.frame_types[e].subtypes[ee] === t)
-                );
-            } else {
-                return masks.control.frame_types[e].type === t;
-            }
-        }
-    );
-}
+	this.__defineGetter__(
+		"response",
+		function() {
+			return (properties.command == 1) ? false : true;
+		}
+	);
 
-function get_frame_type_name(t) {
-    let ret = null;
-    Object.keys(masks.control.frame_types).some(
-        (e) => {
-            if (typeof masks.control.frame_types[e].subtypes == 'object') {
-                return Object.keys(masks.control.frame_types[e].subtypes).some(
-                    (ee) => {
-                        if (masks.control.frame_types[e].subtypes[ee] === t) {
-                            ret = `${e}_${ee}`;
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    }
-                );
-            } else {
-                if (masks.control.frame_types[e].type === t) {
-                    ret = e;
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        }
-    );
-    return ret;
-}
+	this.__defineSetter__(
+		"response",
+		function(response) {
+			if(typeof response != "boolean")
+				throw "ax25.Packet: Invalid response bit assignment (should be boolean.)";
+			properties.command = (response) ? 0 : 1;
+		}
+	);
+	
+	/*	Assemble and return a control octet based on the properties of this
+		packet.  (Note that there is no corresponding setter - the control
+		field is always generated based on packet type, poll/final, and the
+		N(S) and N(R) values if applicable, and must always be fetched from
+		this getter. */
+	this.__defineGetter__(
+		"control",
+		function() {
+			var control = properties.type;
+			if(	properties.type == ax25.Defs.I_FRAME
+				||
+				(properties.type&ax25.Defs.U_FRAME) == ax25.Defs.S_FRAME
+			) {
+				control|=(properties.nr<<((properties.modulo128) ? 9 : 5));
+			}
+			if(properties.type == ax25.Defs.I_FRAME)
+				control|=(properties.ns<<1);
+			if(this.pollFinal)
+				control|=(properties.pollFinal<<((properties.modulo128) ? 8 : 4));
+			return control;
+		}
+	);
+	
+	this.__defineGetter__(
+		"type",
+		function() {
+			return properties.type;
+		}
+	);
+	
+	this.__defineSetter__(
+		"type",
+		function(type) {
+			if(typeof type != "number")
+				throw "ax25.Packet: Invalid frame type assignment.";
+			properties.type = type;
+		}
+	);
+	
+	this.__defineGetter__(
+		"nr",
+		function() {
+			return properties.nr;
+		}
+	);
+	
+	this.__defineSetter__(
+		"nr",
+		function(nr) {
+			if(typeof nr != "number" || nr < 0 || nr > ((properties.modulo128) ? 127 : 7))
+				throw "ax25.Packet: Invalid N(R) assignment.";
+			properties.nr = nr;
+		}
+	);
+	
+	this.__defineGetter__(
+		"ns",
+		function() {
+			return properties.ns;
+		}
+	);
+	
+	this.__defineSetter__(
+		"ns",
+		function(ns) {
+			if(typeof ns != "number" || ns < 0 || ns > ((properties.modulo128) ? 127 : 7))
+				throw "ax25.Packet: Invalid N(S) assignment.";
+			properties.ns = ns;
+		}
+	);
+	
+	this.__defineGetter__(
+		"pid",
+		function() {
+			return (properties.pid == 0) ? undefined : properties.pid;
+		}
+	);
+	
+	this.__defineSetter__(
+		"pid",
+		function(pid) {
+			if(typeof pid != "number")
+				throw "ax25.Packet: Invalid PID field assignment.";
+			if(	properties.type == ax25.Defs.I_FRAME
+				||
+				properties.type == ax25.Defs.U_FRAME_UI
+			) {
+				properties.pid = pid;
+			} else {
+				throw "ax25.Packet: PID can only be set on I and UI frames.";
+			}
+		}
+	);
+	
+	this.__defineGetter__(
+		"info",
+		function() {
+			return properties.info;
+		}
+	);
+	
+	this.__defineSetter__(
+		"info",
+		function(info) {
+			if(typeof info == "undefined")
+				throw "ax25.Packet: Invalid information field assignment.";
+			if(properties.type == ax25.Defs.I_FRAME || properties.type == ax25.Defs.U_FRAME)
+				properties.info = info;
+			else
+				throw "ax25.Defs.Packet: Info field can only be set on I and UI frames.";
+		}
+	);
+	
+	this.__defineGetter__(
+		"infoString",
+		function() {
+			return ax25.Utils.byteArrayToString(properties.info);
+		}
+	);
+	
+	this.__defineSetter__(
+		"infoString",
+		function(info) {
+			if(typeof info != "string")
+				throw "ax25.Packet.infoString: type mismatch.";
+			properties.info = ax25.Utils.stringToByteArray(info);
+		}
+	);
 
-function parse_address(data, offset) {
-    const ret = { callsign : '', ssid : 0, crh : false, ext : false };
-    for (let n = offset; n < (offset + 6); n++) {
-        ret.callsign += String.fromCharCode((data.readUInt8(n)>>1));
-    }
-    var byte = data.readUInt8(offset + 6);
-    ret.ssid = ((byte&(masks.address.ssid))>>1);
-    ret.crh = ((byte&(masks.address.crh)) > 0);
-    ret.ext = ((byte&(masks.address.ext)) > 0);
-    return ret;
-}
+	this.__defineGetter__(
+		"sent",
+		function() {
+			return properties.sent;
+		}
+	);
 
-function encode_address(callsign, ssid, crh, ext) {
-    while (callsign.length < 6) {
-        callsign += ' ';
-    }
-    const arr = callsign.split('').map((e) => e.charCodeAt(0)<<1);
-    arr.push((ext ? 1 : 0)|(ssid<<1)|((crh ? 1 : 0)<<7));
-    return Buffer.from(arr);
-}
+	this.__defineSetter__(
+		"sent",
+		function(sent) {
+			if(typeof sent != "boolean")
+				throw "ax25.Packet.sent: Value must be boolean.";
+			properties.sent = sent;
+		}
+	);
 
-class Packet {
+	this.__defineGetter__(
+		"modulo128",
+		function() {
+			return properties.modulo128;
+		}
+	);
 
-    constructor (modulo = 8) {
+	this.__defineSetter__(
+		"modulo128",
+		function(modulo128) {
+			if(typeof modulo128 != "boolean")
+				throw "ax25.Packet.modulo128: Value must be boolean.";
+			properties.modulo128 = modulo128;
+		}
+	);
+	
+	this.disassemble = function(frame) {
 
-        if (modulo !== 8 && modulo !== 128) {
-            throw `Invalid window-size parameter ${modulo}; must be 8 or 128`;
-        }
+		if(frame.length < 15)
+			throw "ax25.Packet.disassemble: Frame does not meet minimum length.";
 
-        const properties = {
-            destination : { callsign : '', ssid : 0 },
-            source : { callsign : '', ssid : 0 },
-            repeater_path : [],
-            receive_sequence : 0,
-            send_sequence : 0,
-            type : masks.control.frame_types.u_frame.subtypes.ui,
-            protocol_id : masks.pid.none,
-            poll_final : false,
-            command : false,
-            response : false,
-            payload : Buffer.from([])
-        };
+		// Address Field: Destination subfield
+		var field = frame.splice(0, 6);
+		for(var f = 0; f < field.length; f++)
+			properties.destinationCallsign += String.fromCharCode(field[f]>>1);
+		field = frame.shift();
+		properties.destinationSSID = (field&ax25.Defs.A_SSID)>>1;
+		properties.command = (field&ax25.Defs.A_CRH)>>7;
+		
+		// Address Field: Source subfield
+		field = frame.splice(0, 6);
+		for(var f = 0; f < field.length; f++)
+			properties.sourceCallsign += String.fromCharCode(field[f]>>1);
+		field = frame.shift();
+		properties.sourceSSID = (field&ax25.Defs.A_SSID)>>1;
 
-        // Your program should not use Packet[_window_size, _set, _get] directly
+		// Address Field: Repeater path
+		while(field&1 == 0) {
+			field = frame.splice(0, 6);
+			var repeater = {
+				'callsign' : "",
+				'ssid' : 0
+			};
+			for(var f = 0; f < field.length; f++)
+				repeater.callsign += String.fromCharCode(field[f]>>1);
+			field = frame.shift();
+			repeater.ssid = (field&ax25.Defs.A_SSID)>>1;
+			properties.repeaterPath.push(repeater);
+		}
+		
+		// Control field
+		var control = frame.shift();
+		if((control&ax25.Defs.U_FRAME) == ax25.Defs.U_FRAME) {
+			properties.pollFinal = (control&ax25.Defs.PF)>>4;
+			properties.type = control&ax25.Defs.U_FRAME_MASK;
+			if(properties.type == ax25.Defs.U_FRAME_UI) {
+				properties.pid = frame.shift();
+				properties.info = frame;
+			} else if(properties.type == ax25.Defs.U_FRAME_XID && frame.length > 0) {
+				// Parse XID parameter fields and break out to properties
+			} else if(properties.type == ax25.Defs.U_FRAME_TEST && frame.length > 0) {
+				properties.info = frame;
+			}
+		} else if((control&ax25.Defs.U_FRAME) == ax25.Defs.S_FRAME) {
+			properties.type = control&ax25.Defs.S_FRAME_MASK;
+			if(properties.modulo128) {
+				control|=(frame.shift()<<8);
+				properties.nr = (control&ax25.Defs.NR_MODULO128)>>8;
+				properties.pollFinal = (control&ax25.Defs.PF)>>7;
+			} else {
+				properties.nr = (control&ax25.Defs.NR)>>5;
+				properties.pollFinal = (control&ax25.Defs.PF)>>4;
+			}
+		} else if((control&1) == ax25.Defs.I_FRAME) {
+			properties.type = ax25.Defs.I_FRAME;
+			if(properties.modulo128) {
+				control|=(frame.shift()<<8);
+				properties.nr = (control&ax25.Defs.NR_MODULO128)>>8;
+				properties.ns = (control&ax25.Defs.NS_MODULO128)>>1;
+				properties.pollFinal = (control&ax25.Defs.PF)>>7;
+			} else {
+				properties.nr = (control&ax25.Defs.NR)>>5;
+				properties.ns = (control&ax25.Defs.NS)>>1;
+				properties.pollFinal = (control&ax25.Defs.PF)>>4;
+			}
+			properties.pid = frame.shift();
+			properties.info = frame;
+		} else {
+			throw "ax25.Packet.dissassemble: Invalid packet.";
+		}
+		
+	}
+	
+	this.assemble = function() {
+	
+		// Try to catch a few obvious derps
+		if(properties.destinationCallsign.length == 0)
+			throw "ax25.Packet: Destination callsign not set.";
+		if(properties.sourceCallsign.length == 0)
+			throw "ax25.Packet: Source callsign not set.";
+		if(	properties.type == ax25.Defs.I_FRAME
+			&&
+			(	typeof properties.pid == "undefined"
+				||
+				properties.info.length < 1
+			)
+		) {
+			throw "ax25.Packet: I or UI frame with no payload.";
+		}
+		
+		var frame = [];
+		
+		// Address field: Destination subfield
+		for(var c = 0; c < 6; c++) {
+			frame.push(
+				(	(properties.destinationCallsign.length - 1 >= c)
+					?
+					properties.destinationCallsign[c].charCodeAt(0)
+					:
+					32
+				)<<1
+			);
+		}
+		frame.push((properties.command<<7)|(3<<5)|(properties.destinationSSID<<1)
+		);
 
-        this._window_size = modulo;
+		// Address field: Source subfield
+		for(var c = 0; c < 6; c++) {
+			frame.push(
+				(	(properties.sourceCallsign.length - 1 >= c)
+					?
+					properties.sourceCallsign[c].charCodeAt(0)
+					:
+					32
+				)<<1
+			);
+		}
+		frame.push(
+			((properties.command^1)<<7)
+			|
+			(((properties.modulo128) ? 0 : 1)<<6)
+			|
+			(1<<5)
+			|
+			(properties.sourceSSID<<1)
+			|
+			((properties.repeaterPath.length < 1) ? 1 : 0)
+		);
 
-        this._set = function (property, value) {
-            if (typeof properties[property] == 'undefined') {
-                throw `Invalid property ${property}`;
-            }
-            properties[property] = value;
-        }
+		// Address Field: Repeater path
+		for(var r = 0; r < properties.repeaterPath.length; r++) {
+			for(var c = 0; c < 6; c++) {
+				frame.push(
+					(	(properties.repeaterPath[r].callsign.length - 1 >= c)
+						?
+						properties.repeaterPath[r].callsign[c].charCodeAt(0)
+						:
+						32
+					)<<1
+				);
+			}
+			frame.push(
+				(properties.repeaterPath[r].ssid<<1)
+				|
+				((r == properties.repeaterPath.length - 1) ? 1 : 0)
+			);
+		}
 
-        this._get = function (property) {
-            if (typeof properties[property] == 'undefined') {
-                throw `Invalid property ${property}`;
-            }
-            return properties[property];
-        }
+		// Control field
+		if(!properties.modulo128) {
+			frame.push(this.control);
+		} else {
+			frame.push(this.control&255);
+			frame.push(this.control>>8);
+		}
 
-    }
+		// PID field (I and UI frames only)
+		if(	properties.pid
+			&&
+			(	properties.type == ax25.Defs.I_FRAME
+				||
+				properties.type == ax25.Defs.U_FRAME_UI
+			)
+		) {
+			frame.push(properties.pid);
+		}
 
-    get destination() {
-        return this._get('destination');
-    }
+		// Info field
+		if(	properties.info.length > 0
+			&&
+			(	properties.type == ax25.Defs.I_FRAME
+				||
+				properties.type == ax25.Defs.U_FRAME_UI
+				||
+				properties.type == ax25.Defs.U_FRAME_TEST
+			)
+		) {
+			for(var i = 0; i < properties.info.length; i++)
+				frame.push(properties.info[i]);
+		}
+		
+		return frame;
+	}
 
-    set destination(value) {
-        if (!validate_address(value)) {
-            throw `Invalid destination ${value}`;
-        } else {
-            this._set('destination', value);
-        }
-    }
+	this.log = function() {
+		var type = "", pid = "";
+		for(var def in ax25.Defs) {
+			if(def.match(/^PID/) == null && ax25.Defs[def] == this.type && def.match(/MASK$/) == null)
+				type = def;
+			else if(def.match(/^PID/) !== null && ax25.Defs[def] == this.pid)
+				pid = def.replace(/^PID_/, "");
+		}
+		return util.format(
+			"%s-%s -> %s-%s%s, C: %s, R: %s, PF: %s, Type: %s, PID: %s, %s%s",
+			this.sourceCallsign, this.sourceSSID,
+			this.destinationCallsign, this.destinationSSID,
+			(this.repeaterPath.length > 0) ? " (" + this.repeaterPath.join("->") + ")" : "",
+			this.command, this.response, this.pollFinal, type, pid,
+			(type == "I_FRAME" || type.match(/^S_FRAME.*/) !== null) ? "N(R): " + this.nr : "",
+			(type == "I_FRAME")  ? ", N(S): " + this.ns : ""
+		);
+	}
 
-    get source() {
-        return this._get('source');
-    }
-
-    set source(value) {
-        if (!validate_address(value)) {
-            throw `Invalid source ${value}`;
-        } else {
-            this._set('source', value);
-        }
-    }
-
-    get repeater_path() {
-        return this._get('repeater_path');
-    }
-
-    set repeater_path(value) {
-        if (typeof value != 'object' || !Array.isArray(value)) {
-            throw `Invalid repeater_path ${value}`;
-        } else if (!value.every(validate_address)) {
-            throw `Invalid repeater_path entry ${e}`;
-        } else {
-            this._set('repeater_path', value);
-        }
-    }
-
-    get receive_sequence() {
-        return this._get('receive_sequence');
-    }
-
-    set receive_sequence(value) {
-        if (!validate_sequence(value, this._window_size)) {
-            throw `Invalid receive_sequence ${value}`;
-        } else {
-            this._set('receive_sequence', value);
-        }
-    }
-
-    get send_sequence() {
-        return this._get('send_sequence');
-    }
-
-    set send_sequence(value) {
-        if (!validate_sequence(value, this._window_size)) {
-            throw `Invalid send_sequence ${value}`;
-        } else {
-            this._set('send_sequence', value);
-        }
-    }
-
-    get protocol_id() {
-        return this._get('protocol_id');
-    }
-
-    set protocol_id(value) {
-        if (typeof value != 'number' || value < 0 || value > 255) {
-            throw `Invalid protocol_id ${value}`;
-        } else {
-            this._set('protocol_id', value);
-        }
-    }
-
-    get poll_final() {
-        return this._get('poll_final');
-    }
-
-    set poll_final(value) {
-        if (typeof value != 'boolean') {
-            throw `Invalid poll_final ${value}`;
-        } else {
-            this._set('poll_final', value);
-        }
-    }
-
-    get type() {
-        return this._get('type');
-    }
-
-    set type(value) {
-        if (!validate_frame_type(value)) {
-            throw `Invalid frame type ${value}`;
-        } else {
-            this._set('type', value);
-        }
-    }
-
-    get type_name() {
-        return get_frame_type_name(this._get('type'));
-    }
-
-    get command() {
-        return this._get('command');
-    }
-
-    set command(value) {
-        if (typeof value != 'boolean') {
-            throw `Invalid command ${value}`;
-        } else {
-            this._set('command', value);
-        }
-    }
-
-    get response() {
-        return this._get('response');
-    }
-
-    set response(value) {
-        if (typeof value != 'boolean') {
-            throw `Invalid response ${value}`;
-        } else {
-            this._set('response', value);
-        }
-    }
-
-    get payload() {
-        return this._get('payload');
-    }
-
-    set payload(value) {
-        if (!Buffer.isBuffer(value)) {
-            throw `Invalid payload ${value}`;
-        } else {
-            this._set('payload', value);
-        }
-    }
-
-    assemble() {
-        const control_length = this._window_size == 8 || (this.type&3) == 3 ? 1 : 2;
-        const control_offset = 14 + (this.repeater_path.length * 7);
-        const protocol_id_length = this.type == 3 || this.type == 0 ? 1 : 0;
-        // We'll call the address, control, and protocol ID fields the 'header'
-        const header = Buffer.concat(
-            [   encode_address(
-                    this.destination.callsign, this.destination.ssid, this.command, false
-                ),
-                encode_address(
-                    this.source.callsign, this.source.ssid, this.response, (this.repeater_path.length < 1)
-                )
-            ].concat(
-                this.repeater_path.map(
-                    (e, i, a) => {
-                        encode_address(e.callsign, e.ssid, e.h, (i == a.length - 1))
-                    }
-                )
-            ).concat(
-                Buffer.alloc(control_length),
-                Buffer.alloc(protocol_id_length)
-            )
-        );
-        let control = this.type;
-        if ((control&3) == 3) {
-            header.writeUInt8(control|((this.poll_final ? 1 : 0)<<4), control_offset);
-            if (protocol_id_length > 0) {
-                header.writeUInt8(this.protocol_id, control_offset + control_length);
-            }
-        } else {
-            if (control == masks.control.frame_types.i_frame.type) {
-                control|=(this.send_sequence<<1);
-                header.writeUInt8(this.protocol_id, control_offset + control_length);
-            }
-            if (this._window_size == 8) {
-                control|=((this.poll_final ? 1 : 0)<<4);
-                control|=(this.receive_sequence<<5);
-                header.writeUInt8(control, control_offset);
-            } else {
-                control|=((this.poll_final ? 1 : 0)<<8);
-                control|=(this.receive_sequence<<9);
-                // This is dumb but I'll sort it out later.
-                header.writeUInt8(control&255, control_offset);
-                header.writeUInt8((control&(255<<8))>>8, control_offset + 1);
-            }
-        }
-        return Buffer.concat([header, this.payload]);
-    }
-
-    disassemble(data) {
-        if (!Buffer.isBuffer(data)) {
-            throw `data parameter must be Buffer, supplied ${typeof data}`;
-        } else if (data.length < (this._window_size == 8 ? 15 : 17)) {
-            throw `Packet does not meet minimum length`;
-        } else {
-            let address = parse_address(data, 0);
-            this.destination = address;
-            this.command = address.crh;
-            address = parse_address(data, 7);
-            this.source = address;
-            this.response = address.crh;
-            let offset = 14;
-            if (!address.ext) {
-                const repeater_path = [];
-                while (!address.ext) {
-                    address = parse_address(data, offset);
-                    repeater_path.push(address);
-                    offset = offset + 7;
-                }
-            }
-            let control = data.readUInt8(offset);
-            if ((control&3) == 3) {
-                this.type = (control&masks.control.frame_types.u_frame.mask);
-            } else {
-                if ((control&1) == 0) {
-                    this.type = masks.control.frame_types.i_frame.type;
-                } else {
-                    this.type = (control&masks.control.frame_types.s_frame.mask);
-                }
-                if (this._window_size == 128) {
-                    offset++;
-                    control|=(data.readUInt8(offset)<<8);
-                    this.receive_sequence = ((control&masks.control.nr_128)>>9);
-                    this.send_sequence = ((control&masks.control.ns_128)>>1);
-                    this.poll_final = ((control&masks.control.pf_128) > 0);
-                } else {
-                    this.receive_sequence = ((control&masks.control.nr)>>5);
-                    this.send_sequence = ((control&masks.control.ns)>>1);
-                }
-            }
-            offset++;
-            if (this.type == 0 || this.type == 3) { // I or UI frame
-                this.protocol_id = data.readUInt8(offset);
-                offset++;
-            }
-            this.payload = data.slice(offset);
-        }
-    }
-
+	if(typeof args != "undefined" && typeof args.frame != "undefined") {
+		this.disassemble(args.frame);
+	} else if(typeof args != "undefined") {
+		for(var a in args) {
+			if(typeof this[a] == "undefined" || typeof args[a] == "function" || a == "frame") {
+				console.log(
+					"Not assigning " + a + ": " + typeof this[a]
+				);
+				continue;
+			}
+			this[a] = args[a];
+		}
+	}
+	
 }
 
 module.exports = Packet;
