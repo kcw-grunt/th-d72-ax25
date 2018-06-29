@@ -32,8 +32,9 @@ var kissTNC = function(args) {
 	this.__defineSetter__(
 		"baudRate",
 		function(baudRate) {
-			if(typeof baudRate != "number")
+			if(typeof baudRate != "number") {
 				throw "kissTNC: Invalid or no baudRate argument provided.";
+			}
 			properties.baudRate = baudRate;
 		}
 	);
@@ -229,6 +230,10 @@ var kissTNC = function(args) {
 		serialHandle.write('KISS OFF RESTART\r\n');
 	}
 
+	this.sendRAWPacket = function(data) {
+		serialHandle.write(data +'\r\n'); 
+	}
+	
 	this.close = function() {
 		serialHandle.close();
 	}
