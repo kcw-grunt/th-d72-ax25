@@ -189,6 +189,15 @@ var kissTNC = function(args) {
 			self.emit("closed");
 		}
 	);
+
+	serialHandle.on(
+		"write",
+		function() {
+			self.emit("written to port");
+		}
+	);
+
+
 		
 	serialHandle.on(
 		"data",
@@ -206,9 +215,18 @@ var kissTNC = function(args) {
 			throw "kissTNC.send: data type mismatch.";
 		sendFrame(ax25.kissDefs.DATAFRAME, data);
 	}
+
+	this.enterD72KISS = function() {
+		serialHandle.write('KISS ON RESTART\r\n');
+		console.log('Entered TH-D72A into KISS Mode');
+	}
 	
 	this.exitKISS = function() {
 		sendFrame(ax25.kissDefs.RETURN, []);
+	}
+
+	this.exitD72KISS = function() {
+		serialHandle.write('KISS OFF RESTART\r\n');
 	}
 
 	this.close = function() {
