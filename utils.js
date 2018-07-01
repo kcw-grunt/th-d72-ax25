@@ -3,11 +3,11 @@ var util = require("util");
 var Utils = function() {
 
 	this.testCallsign = function(callsign) {
-		if(typeof callsign == "undefined" || callsign.length > 6)
+		if(typeof callsign != "string" || callsign.length > 6)
 			return false;
-		var ucCallsign = callsign.toUpperCase().replace(/\s*$/g, "");
-		for(var c = 0; c < ucCallsign.length; c++) {
-			var a = ucCallsign[c].charCodeAt(0);
+			callsign = callsign.replace(/\s*$/g, "");
+		for(var c = 0; c < callsign.length; c++) {
+			var a = callsign[c].charCodeAt(0);
 			if(	(a >= 48 && a <= 57)
 				||
 				(a >=65 && a <=90)
