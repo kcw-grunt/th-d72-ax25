@@ -5,7 +5,7 @@ var Utils = function() {
 	this.testCallsign = function(callsign) {
 		if(typeof callsign != "string" || callsign.length > 6)
 			return false;
-			callsign = callsign.replace(/\s*$/g, "");
+			callsign = callsign.toUpperCase().replace(/\s*$/g, "");
 		for(var c = 0; c < callsign.length; c++) {
 			var a = callsign[c].charCodeAt(0);
 			if(	(a >= 48 && a <= 57)
