@@ -220,8 +220,8 @@ var kissTNC = function(args) {
 	this.enterD72KISS = function() {
 		serialHandle.write('KISS ON\r\n');
 		serialHandle.write('RESTART\r\n'); 
-		serialHandle.read();
-		console.log('Entered TH-D72A into KISS Mode');
+		serialHandle.write('CONV\r\n'); 
+		console.log('Entered TH-D72A into KISS Mode Conv');
 	}
 
 	this.sendTestPackets = function() {
