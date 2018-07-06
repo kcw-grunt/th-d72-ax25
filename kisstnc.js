@@ -203,7 +203,15 @@ var kissTNC = function(args) {
 	serialHandle.on(
 		"data",
 		function(data) {
+			console.log(data);
 			dataHandler(data);
+		}
+	);
+
+	serialHandle.on(
+		"readable", 
+		function() {
+			console.log('Data:',serialHandle.read());
 		}
 	);
 
