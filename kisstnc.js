@@ -2,6 +2,8 @@ var util		= require("util");
 var events		= require("events");
 var SerialPort	= require("serialport");
 var ax25		= require("./index.js");
+const Readline = require('@serialport/parser-readline')
+
 
 var kissTNC = function(args) {
 
@@ -197,8 +199,6 @@ var kissTNC = function(args) {
 			self.emit("written to port");
 		}
 	);
-
-
 		
 	serialHandle.on(
 		"data",
@@ -214,7 +214,10 @@ var kissTNC = function(args) {
 			console.log('Data:',serialHandle.read());
 		}
 	);
-
+ 
+	const parser = serialHandle.pipe(new Readline({ delimiter: '\r\n' }))
+	parser.on('data', console.log)
+ 
 	this.setHardware = function(value) {
 		sendFrame(ax25.kissDefs.SETHARDWARE, [value]);
 	}
