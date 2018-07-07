@@ -252,6 +252,7 @@ var kissTNC = function(args) {
         "data",
         function(data) {
             dataHandler(data);
+            console.log('Data:'+data);
         }
     );
 
@@ -264,10 +265,36 @@ var kissTNC = function(args) {
             throw "kissTNC.send: data type mismatch.";
         sendFrame(ax25.kissDefs.DATAFRAME, data);
     }
+    	
+ 	this.enterD72KISS = function() {	
+        serialHandle.write('KISS ON RESTART\r\n');	 	
+        let op = serialHandle.read();
+        console.log('Entered TH D72A into KISS Mode Conv:', op);	
+    }	
     
-    this.exitKISS = function() {
-        sendFrame(ax25.kissDefs.RETURN, []);
-    }
+    this.sendTestPackets = function() {	
+        serialHandle.write('CPACTIME\r\n');	
+        serialHandle.read();	
+        console.log('Started Test Packets');	
+    } 	
+        
+    this.startCONV = function(message) {	
+        serialHandle.write('CONV' + message +'\r\n');	
+        console.log('Sent:' + message);	
+    }	
+        
+    this.exitKISS = function() {	
+        sendFrame(ax25.kissDefs.RETURN, []);	
+    }	
+    
+    this.exitD72KISS = function() {	
+        serialHandle.write('KISS OFF RESTART\r\n');	
+    }	
+    
+    this.sendRAWPacket = function(data) {
+        var str = "" + data	
+        serialHandle.write(str +"\r\n"); 	
+    }	
 
     this.close = function() {
         serialHandle.close();
