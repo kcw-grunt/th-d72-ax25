@@ -2,22 +2,23 @@ var ax25 = require("./index.js"),
 	util = require("util");
 
 var Packet = function(args) {
-	
+
 	var properties = {
-		'destinationCallsign'	: "",
-		'destinationSSID'		: 0,
-		'sourceCallsign'		: "",
-		'sourceSSID'			: 0,
-		'repeaterPath'			: [],
-		'pollFinal'				: 0,
-		'command'				: 0,
-		'type'					: 0,
-		'nr'					: 0,
-		'ns'					: 0,
-		'pid'					: ax25.Defs.PID_NONE,
-		'info'					: [],
-		'sent'					: false, // Relevant only to ax25.Session
-		'modulo128'				: false
+		'destinationCallsign'    : "",
+		'destinationSSID'        : 0,
+		'sourceCallsign'        : "",
+		'sourceSSID'            : 0,
+		'repeaterPath'            : [],
+		'pollFinal'                : 0,
+		'command'                : 0,
+		'type'                    : 0,
+		'nr'                    : 0,
+		'ns'                    : 0,
+		'pid'                    : ax25.Defs.PID_NONE,
+		'info'                    : [],
+		'sent'                    : false, // Relevant only to ax25.Session
+		'modulo128'                : false,
+		'fcs'                   : 0
 	};
 	
 	this.__defineGetter__(
@@ -106,13 +107,13 @@ var Packet = function(args) {
 			if(typeof repeaters == "undefined" || !(repeaters instanceof Array))
 				throw msg;
 			for(var r = 0; r < repeaters.length; r++) {
-				if(	!repeaters[r].hasOwnProperty('callsign')
+				if(    !repeaters[r].hasOwnProperty('callsign')
 					||
 					!ax25.Utils.testCallsign(repeaters[r].callsign)
 				) {
 					throw msg;
 				}
-				if(	!repeaters[r].hasOwnProperty('ssid')
+				if(    !repeaters[r].hasOwnProperty('ssid')
 					||
 					repeaters[r].ssid < 0
 					||
@@ -173,7 +174,7 @@ var Packet = function(args) {
 		}
 	);
 	
-	/*	Assemble and return a control octet based on the properties of this
+	/*    Assemble and return a control octet based on the properties of this
 		packet.  (Note that there is no corresponding setter - the control
 		field is always generated based on packet type, poll/final, and the
 		N(S) and N(R) values if applicable, and must always be fetched from
@@ -182,7 +183,7 @@ var Packet = function(args) {
 		"control",
 		function() {
 			var control = properties.type;
-			if(	properties.type == ax25.Defs.I_FRAME
+			if(    properties.type == ax25.Defs.I_FRAME
 				||
 				(properties.type&ax25.Defs.U_FRAME) == ax25.Defs.S_FRAME
 			) {
@@ -256,7 +257,7 @@ var Packet = function(args) {
 		function(pid) {
 			if(typeof pid != "number")
 				throw "ax25.Packet: Invalid PID field assignment.";
-			if(	properties.type == ax25.Defs.I_FRAME
+			if(    properties.type == ax25.Defs.I_FRAME
 				||
 				properties.type == ax25.Defs.U_FRAME_UI
 			) {
@@ -334,9 +335,17 @@ var Packet = function(args) {
 		}
 	);
 	
+	this.__defineGetter__(
+		"fcs",
+		function() {
+			return properties.fcs;
+		}
+	);
+	
 	this.disassemble = function(frame) {
 
-		if(frame.length < 15)
+		//if(frame.length < 15)
+		if(frame.length < 17)
 			throw "ax25.Packet.disassemble: Frame does not meet minimum length.";
 
 		// Address Field: Destination subfield
@@ -375,10 +384,12 @@ var Packet = function(args) {
 			properties.type = control&ax25.Defs.U_FRAME_MASK;
 			if(properties.type == ax25.Defs.U_FRAME_UI) {
 				properties.pid = frame.shift();
+				properties.fcs = (frame.pop() << 8) + frame.pop();
 				properties.info = frame;
 			} else if(properties.type == ax25.Defs.U_FRAME_XID && frame.length > 0) {
 				// Parse XID parameter fields and break out to properties
 			} else if(properties.type == ax25.Defs.U_FRAME_TEST && frame.length > 0) {
+				properties.fcs = (frame.pop() << 8) + frame.pop();
 				properties.info = frame;
 			}
 		} else if((control&ax25.Defs.U_FRAME) == ax25.Defs.S_FRAME) {
@@ -404,6 +415,7 @@ var Packet = function(args) {
 				properties.pollFinal = (control&ax25.Defs.PF)>>4;
 			}
 			properties.pid = frame.shift();
+			properties.fcs = (frame.pop() << 8) + frame.pop();
 			properties.info = frame;
 		} else {
 			throw "ax25.Packet.dissassemble: Invalid packet.";
@@ -418,9 +430,9 @@ var Packet = function(args) {
 			throw "ax25.Packet: Destination callsign not set.";
 		if(properties.sourceCallsign.length == 0)
 			throw "ax25.Packet: Source callsign not set.";
-		if(	properties.type == ax25.Defs.I_FRAME
+		if(    properties.type == ax25.Defs.I_FRAME
 			&&
-			(	typeof properties.pid == "undefined"
+			(    typeof properties.pid == "undefined"
 				||
 				properties.info.length < 1
 			)
@@ -433,7 +445,7 @@ var Packet = function(args) {
 		// Address field: Destination subfield
 		for(var c = 0; c < 6; c++) {
 			frame.push(
-				(	(properties.destinationCallsign.length - 1 >= c)
+				(    (properties.destinationCallsign.length - 1 >= c)
 					?
 					properties.destinationCallsign[c].charCodeAt(0)
 					:
@@ -447,7 +459,7 @@ var Packet = function(args) {
 		// Address field: Source subfield
 		for(var c = 0; c < 6; c++) {
 			frame.push(
-				(	(properties.sourceCallsign.length - 1 >= c)
+				(    (properties.sourceCallsign.length - 1 >= c)
 					?
 					properties.sourceCallsign[c].charCodeAt(0)
 					:
@@ -471,7 +483,7 @@ var Packet = function(args) {
 		for(var r = 0; r < properties.repeaterPath.length; r++) {
 			for(var c = 0; c < 6; c++) {
 				frame.push(
-					(	(properties.repeaterPath[r].callsign.length - 1 >= c)
+					(    (properties.repeaterPath[r].callsign.length - 1 >= c)
 						?
 						properties.repeaterPath[r].callsign[c].charCodeAt(0)
 						:
@@ -495,9 +507,9 @@ var Packet = function(args) {
 		}
 
 		// PID field (I and UI frames only)
-		if(	properties.pid
+		if(    properties.pid
 			&&
-			(	properties.type == ax25.Defs.I_FRAME
+			(    properties.type == ax25.Defs.I_FRAME
 				||
 				properties.type == ax25.Defs.U_FRAME_UI
 			)
@@ -506,9 +518,9 @@ var Packet = function(args) {
 		}
 
 		// Info field
-		if(	properties.info.length > 0
+		if(    properties.info.length > 0
 			&&
-			(	properties.type == ax25.Defs.I_FRAME
+			(    properties.type == ax25.Defs.I_FRAME
 				||
 				properties.type == ax25.Defs.U_FRAME_UI
 				||
@@ -518,6 +530,12 @@ var Packet = function(args) {
 			for(var i = 0; i < properties.info.length; i++)
 				frame.push(properties.info[i]);
 		}
+		
+		// FCS field
+		// The frame check sequence (FCS) is a 16-bit CRC-CCITT
+		// We just stuff it with all zeros here.
+		frame.push(0);
+		frame.push(0);
 		
 		return frame;
 	}
