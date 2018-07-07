@@ -124,8 +124,10 @@ var kissTNC = function(args) {
 			function(err, result) {
 				if(typeof err != "undefined")
 					self.emit("error", "kissTNC: Send error: " + err);
+					console.log("error", "kissTNC: Send error: " + err);
 				if(typeof result != "undefined")
 					self.emit("sent", "kissTNC: Send result: " + result);
+					console.log("sent", "kissTNC: Send result: " + result);
 			}
 		);
 	}
