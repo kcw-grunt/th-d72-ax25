@@ -33,6 +33,7 @@
   },
   "homepage": "https://github.com/kcw-grunt/th-d72-ax25#readme",
   "dependencies": {
+    "@serialport/parser-readline": "^1.0.5",
     "serialport": "^6.2.0"
   }
 }
