@@ -171,6 +171,7 @@ var kissTNC = function(args) {
     this.baudRate        = args.baudRate;
     
     var dataBuffer = [];
+    var commandBuffer = [];
         
     var sendFrame = function(command, data) {
         if(!(data instanceof Array))
@@ -209,6 +210,12 @@ var kissTNC = function(args) {
             }
             if(escaped)
                 escaped = false;
+                
+            commandBuffer.push(data[d]);
+            if(data[d] == '\r\n') {
+                console.log(commandBuffer);
+                commandBuffer = [];
+            } 
         }
     }
     
@@ -259,8 +266,7 @@ var kissTNC = function(args) {
         "data",
         function(data) {
             dataHandler(data);
-            console.log('Data:'+data);
-        }
+         }
     );
 
     this.setHardware = function(value) {
