@@ -208,8 +208,7 @@ var kissTNC = function(args) {
                 dataBuffer = [];
             }
             if(escaped)
-                escaped = false;
-            } 
+                escaped = false; 
         }
     }
     
