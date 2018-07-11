@@ -23,7 +23,6 @@ var kissTNC = function(args) {
 
     }
  
- 
     this.__defineSetter__(
         "serialPort",
         function(serialPort) {
