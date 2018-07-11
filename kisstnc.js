@@ -211,8 +211,8 @@ var kissTNC = function(args) {
             if(escaped)
                 escaped = false;
                 
-            commandBuffer.push(data[d]);
-            console.log('Partial cmd:', commandBuffer);
+            commandBuffer.push(data[d].toString('utf8'));
+            console.log('Partial cmd:', commandBuffer.toString());
             if(data[d] == '\r\n') {
                 console.log(commandBuffer);
                 commandBuffer = [];
