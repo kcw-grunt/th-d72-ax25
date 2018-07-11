@@ -263,6 +263,8 @@ var kissTNC = function(args) {
         function(data) {
             dataHandler(data);
             rawData(data);
+            //console.log("Data:",data);
+            self.emit("raw", data);
          }
     );
 
