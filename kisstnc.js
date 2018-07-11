@@ -171,7 +171,6 @@ var kissTNC = function(args) {
     this.baudRate        = args.baudRate;
     
     var dataBuffer = [];
-    var commandBuffer = [];
         
     var sendFrame = function(command, data) {
         if(!(data instanceof Array))
@@ -210,16 +209,14 @@ var kissTNC = function(args) {
             }
             if(escaped)
                 escaped = false;
-            const letter = data[d].toString('utf8');
-            commandBuffer.push(letter);
-            console.log('Partial cmd:', commandBuffer.toString());
-            if(data[d] == '\r\n') {
-                console.log(commandBuffer);
-                commandBuffer = [];
             } 
         }
     }
     
+    var rawData = function(data) {
+        self.emit("rawdata", data);
+    }
+
     var serialHandle = new SerialPort(
         properties.serialPort, {
             'baudRate' : properties.baudRate,
@@ -267,6 +264,7 @@ var kissTNC = function(args) {
         "data",
         function(data) {
             dataHandler(data);
+            rawData(data);
          }
     );
 
