@@ -212,6 +212,7 @@ var kissTNC = function(args) {
                 escaped = false;
                 
             commandBuffer.push(data[d]);
+            console.log('Partial cmd:', commandBuffer);
             if(data[d] == '\r\n') {
                 console.log(commandBuffer);
                 commandBuffer = [];
