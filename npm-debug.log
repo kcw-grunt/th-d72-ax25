@@ -1,0 +1,17 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/bin/nodejs', '/usr/bin/npm', 'version', '1.3.7' ]
+2 info using npm@3.5.2
+3 info using node@v4.2.6
+4 verbose stack Error: Version not changed
+4 verbose stack     at /usr/share/npm/lib/version.js:52:49
+4 verbose stack     at /usr/share/npm/node_modules/graceful-fs/graceful-fs.js:76:16
+4 verbose stack     at FSReqWrap.readFileAfterClose [as oncomplete] (fs.js:380:3)
+5 verbose cwd /home/kerry/th-d72-ax25
+6 error Linux 4.13.0-37-generic
+7 error argv "/usr/bin/nodejs" "/usr/bin/npm" "version" "1.3.7"
+8 error node v4.2.6
+9 error npm  v3.5.2
+10 error Version not changed
+11 error If you need help, you may report this error at:
+11 error     <https://github.com/npm/npm/issues>
+12 verbose exit [ 1, true ]

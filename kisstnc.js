@@ -275,26 +275,11 @@ var kissTNC = function(args) {
             throw "kissTNC.send: data type mismatch.";
         sendFrame(ax25.kissDefs.DATAFRAME, data);
     }
-    
-    this.sendTestPackets = function() {	
-        serialHandle.write('CPACTIME\r\n');	
-        serialHandle.read();	
-        console.log('Started Test Packets');	
-    } 	
-        
-    this.startCONV = function(message) {	
-        serialHandle.write('CONV' + message +'\r\n');	
-        console.log('Sent:' + message);	
-    }	
-        
+     
     this.exitKISS = function() {	
         sendFrame(ax25.kissDefs.RETURN, []);	
     }	
-    
-    this.exitD72KISS = function() {	
-        serialHandle.write('KISS OFF\r\n');	
-    }	
-    
+
     this.sendRAWString = function(data) {
         var str = "" + data	
         serialHandle.write(str+"\r\n"); 	
