@@ -210,8 +210,8 @@ var kissTNC = function(args) {
             }
             if(escaped)
                 escaped = false;
-                
-            commandBuffer.push(data[d].toString('utf8'));
+            const letter = data[d].toString('utf8');
+            commandBuffer.push(letter);
             console.log('Partial cmd:', commandBuffer.toString());
             if(data[d] == '\r\n') {
                 console.log(commandBuffer);
