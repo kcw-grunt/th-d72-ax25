@@ -11,14 +11,19 @@ var kissTNC = function(args) {
 
     var properties = {
         'serialPort'    : 0,
-        'baudRate'        : 0,
+        'baudRate'       : 0,
+        'parity'         :'none',
+        'stopBits'       :1,
+        'flowControl'    :8,
         'txDelay'        : 50,
         'persistence'    : 63,
         'slotTime'        : 10,
         'txTail'        : 1,
         'fullDuplex'    : false
-    }
 
+    }
+ 
+ 
     this.__defineSetter__(
         "serialPort",
         function(serialPort) {
@@ -209,10 +214,13 @@ var kissTNC = function(args) {
     
     var serialHandle = new SerialPort(
         properties.serialPort, {
-            'baudRate' : properties.baudRate
+            'baudRate' : properties.baudRate,
+            'parity' : properties.parity,
+            'stopBits' : properties.stopBits,
+            'flowControl' : properties.flowControl
         }
     );
-    
+
     serialHandle.on(
         "error",
         function(err) {
