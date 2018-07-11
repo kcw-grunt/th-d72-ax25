@@ -263,15 +263,6 @@ var kissTNC = function(args) {
         }
     );
 
-    var parser = new Readline();
-    serialHandle.pipe(parser);
-
-    parser.on(
-    "data", function(data) { 
-        console.log('Parser Data:'+data);
-    }
-);
-
     this.setHardware = function(value) {
         sendFrame(ax25.kissDefs.SETHARDWARE, [value]);
     }
@@ -281,12 +272,6 @@ var kissTNC = function(args) {
             throw "kissTNC.send: data type mismatch.";
         sendFrame(ax25.kissDefs.DATAFRAME, data);
     }
-    	
- 	this.enterD72KISS = function() {	
-        serialHandle.write('KISS ON RESTART\r\n');	 	
-        let op = serialHandle.read();
-        console.log('Entered TH D72A into KISS Mode Conv:', op);	
-    }	
     
     this.sendTestPackets = function() {	
         serialHandle.write('CPACTIME\r\n');	
@@ -304,12 +289,12 @@ var kissTNC = function(args) {
     }	
     
     this.exitD72KISS = function() {	
-        serialHandle.write('KISS OFF RESTART\r\n');	
+        serialHandle.write('KISS OFF\r\n');	
     }	
     
-    this.sendRAWPacket = function(data) {
+    this.sendRAWString = function(data) {
         var str = "" + data	
-        serialHandle.write(str +"\r\n"); 	
+        serialHandle.write(str+"\r\n"); 	
     }	
 
     this.close = function() {
