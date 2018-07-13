@@ -2,8 +2,7 @@ var util		= require("util");
 var events		= require("events");
 var SerialPort	= require("serialport");
 var ax25		= require("./index.js");
-const Readline = require('@serialport/parser-readline')
-
+ 
 var kissTNC = function(args) {
 
     var self = this;
