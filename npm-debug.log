@@ -2,25 +2,112 @@
 1 verbose cli [ '/usr/local/bin/node',
 1 verbose cli   '/usr/local/bin/npm',
 1 verbose cli   'version',
-1 verbose cli   '1.3.10' ]
-2 info using npm@3.5.2
-3 info using node@v4.2.6
+1 verbose cli   '1.3.11' ]
+2 info using npm@3.10.9
+3 info using node@v7.1.0
 4 info git [ 'status', '--porcelain' ]
 5 verbose stack Error: Git working directory not clean.
-5 verbose stack M kisstnc.js
-5 verbose stack     at /usr/local/lib/node_modules/npm/lib/version.js:172:21
-5 verbose stack     at ChildProcess.exithandler (child_process.js:204:7)
-5 verbose stack     at emitTwo (events.js:87:13)
-5 verbose stack     at ChildProcess.emit (events.js:172:7)
-5 verbose stack     at maybeClose (internal/child_process.js:821:16)
-5 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:211:5)
+5 verbose stack M node_modules/mimic-response/index.js
+5 verbose stack M node_modules/mimic-response/package.json
+5 verbose stack D node_modules/parser-byte-length/README.md
+5 verbose stack D node_modules/parser-byte-length/byte-length.js
+5 verbose stack D node_modules/parser-byte-length/package.json
+5 verbose stack D node_modules/parser-cctalk/README.md
+5 verbose stack D node_modules/parser-cctalk/cctalk.js
+5 verbose stack D node_modules/parser-cctalk/package.json
+5 verbose stack D node_modules/parser-delimiter/README.md
+5 verbose stack D node_modules/parser-delimiter/delimiter.js
+5 verbose stack D node_modules/parser-delimiter/package.json
+5 verbose stack D node_modules/parser-readline/README.md
+5 verbose stack D node_modules/parser-readline/package.json
+5 verbose stack D node_modules/parser-readline/readline.js
+5 verbose stack D node_modules/parser-ready/README.md
+5 verbose stack D node_modules/parser-ready/package.json
+5 verbose stack D node_modules/parser-ready/ready.js
+5 verbose stack D node_modules/parser-regex/README.md
+5 verbose stack D node_modules/parser-regex/package.json
+5 verbose stack D node_modules/parser-regex/regex.js
+5 verbose stack M node_modules/prebuild-install/.travis.yml
+5 verbose stack M node_modules/prebuild-install/README.md
+5 verbose stack M node_modules/prebuild-install/appveyor.yml
+5 verbose stack M node_modules/prebuild-install/bin.js
+5 verbose stack M node_modules/prebuild-install/download.js
+5 verbose stack M node_modules/prebuild-install/help.txt
+5 verbose stack M node_modules/prebuild-install/package.json
+5 verbose stack M node_modules/prebuild-install/rc.js
+5 verbose stack M node_modules/prebuild-install/util.js
+5 verbose stack M node_modules/serialport/CHANGELOG.md
+5 verbose stack M node_modules/serialport/README.md
+5 verbose stack M node_modules/serialport/build/Release/serialport.node
+5 verbose stack M node_modules/serialport/lib/bindings/darwin.js
+5 verbose stack M node_modules/serialport/lib/bindings/linux-list.js
+5 verbose stack M node_modules/serialport/lib/bindings/linux.js
+5 verbose stack M node_modules/serialport/lib/bindings/poller.js
+5 verbose stack M node_modules/serialport/lib/parsers.js
+5 verbose stack M node_modules/serialport/package.json
+5 verbose stack D node_modules/serialport/prebuilds/serialport-v6.1.1-node-v48-darwin-x64.tar.gz
+5 verbose stack M node_modules/serialport/src/darwin_list.cpp
+5 verbose stack M node_modules/serialport/src/poller.cpp
+5 verbose stack M node_modules/serialport/src/poller.h
+5 verbose stack M node_modules/serialport/src/serialport.cpp
+5 verbose stack D npm-debug.log
+5 verbose stack     at /usr/local/lib/node_modules/npm/lib/version.js:247:19
+5 verbose stack     at /usr/local/lib/node_modules/npm/lib/utils/no-progress-while-running.js:21:8
+5 verbose stack     at ChildProcess.exithandler (child_process.js:202:7)
+5 verbose stack     at emitTwo (events.js:106:13)
+5 verbose stack     at ChildProcess.emit (events.js:191:7)
+5 verbose stack     at maybeClose (internal/child_process.js:885:16)
+5 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:226:5)
 6 verbose cwd /home/kerry/th-d72-ax25
 7 error Linux 4.13.0-45-generic
-8 error argv "/usr/local/bin/node" "/usr/local/bin/npm" "version" "1.3.10"
-9 error node v4.2.6
-10 error npm  v3.5.2
+8 error argv "/usr/local/bin/node" "/usr/local/bin/npm" "version" "1.3.11"
+9 error node v7.1.0
+10 error npm  v3.10.9
 11 error Git working directory not clean.
-11 error M kisstnc.js
+11 error M node_modules/mimic-response/index.js
+11 error M node_modules/mimic-response/package.json
+11 error D node_modules/parser-byte-length/README.md
+11 error D node_modules/parser-byte-length/byte-length.js
+11 error D node_modules/parser-byte-length/package.json
+11 error D node_modules/parser-cctalk/README.md
+11 error D node_modules/parser-cctalk/cctalk.js
+11 error D node_modules/parser-cctalk/package.json
+11 error D node_modules/parser-delimiter/README.md
+11 error D node_modules/parser-delimiter/delimiter.js
+11 error D node_modules/parser-delimiter/package.json
+11 error D node_modules/parser-readline/README.md
+11 error D node_modules/parser-readline/package.json
+11 error D node_modules/parser-readline/readline.js
+11 error D node_modules/parser-ready/README.md
+11 error D node_modules/parser-ready/package.json
+11 error D node_modules/parser-ready/ready.js
+11 error D node_modules/parser-regex/README.md
+11 error D node_modules/parser-regex/package.json
+11 error D node_modules/parser-regex/regex.js
+11 error M node_modules/prebuild-install/.travis.yml
+11 error M node_modules/prebuild-install/README.md
+11 error M node_modules/prebuild-install/appveyor.yml
+11 error M node_modules/prebuild-install/bin.js
+11 error M node_modules/prebuild-install/download.js
+11 error M node_modules/prebuild-install/help.txt
+11 error M node_modules/prebuild-install/package.json
+11 error M node_modules/prebuild-install/rc.js
+11 error M node_modules/prebuild-install/util.js
+11 error M node_modules/serialport/CHANGELOG.md
+11 error M node_modules/serialport/README.md
+11 error M node_modules/serialport/build/Release/serialport.node
+11 error M node_modules/serialport/lib/bindings/darwin.js
+11 error M node_modules/serialport/lib/bindings/linux-list.js
+11 error M node_modules/serialport/lib/bindings/linux.js
+11 error M node_modules/serialport/lib/bindings/poller.js
+11 error M node_modules/serialport/lib/parsers.js
+11 error M node_modules/serialport/package.json
+11 error D node_modules/serialport/prebuilds/serialport-v6.1.1-node-v48-darwin-x64.tar.gz
+11 error M node_modules/serialport/src/darwin_list.cpp
+11 error M node_modules/serialport/src/poller.cpp
+11 error M node_modules/serialport/src/poller.h
+11 error M node_modules/serialport/src/serialport.cpp
+11 error D npm-debug.log
 12 error If you need help, you may report this error at:
 12 error     <https://github.com/npm/npm/issues>
 13 verbose exit [ 1, true ]
