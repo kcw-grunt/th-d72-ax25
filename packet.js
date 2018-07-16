@@ -424,7 +424,9 @@ var Packet = function(args) {
 	}
 	
 	this.assemble = function() {
-	
+
+	console.log("In assembling props:", properties.destinationCallsign,properties.destinationSSID,properties.sourceCallsign,properties.sourceSSID,properties.command );
+	console.log("In assembling Message",properties.info);
 		// Try to catch a few obvious derps
 		if(properties.destinationCallsign.length == 0)
 			throw "ax25.Packet: Destination callsign not set.";

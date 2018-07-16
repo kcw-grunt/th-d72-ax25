@@ -286,6 +286,10 @@ var kissTNC = function(args) {
         serialHandle.write(str+"\r\n"); 	
     }	
 
+    this.sendRAW = function(data) {
+        serialHandle.write(data);
+    }
+
     this.close = function() {
         serialHandle.close();
     }
