@@ -13,13 +13,13 @@ var kissTNC = function(args) {
         'baudRate'       : 0,
         'parity'         :'none',
         'stopBits'       :1,
-        'flowControl'    :8,
+        'dataBits'       :8,
+        'flowControl'    :false,
         'txDelay'        : 50,
         'persistence'    : 63,
         'slotTime'        : 10,
         'txTail'        : 1,
         'fullDuplex'    : false
-
     }
  
     this.__defineSetter__(
@@ -219,6 +219,7 @@ var kissTNC = function(args) {
             'baudRate' : properties.baudRate,
             'parity' : properties.parity,
             'stopBits' : properties.stopBits,
+            'dataBits' : properties.dataBits,
             'flowControl' : properties.flowControl
         }
     );
